@@ -3,7 +3,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const db = require('./dbUtils.js');
-const crypto = require('crypto');
+//const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 
 const app = express();
 
@@ -20,14 +23,16 @@ app.route("/login")
         res.render('login');
     })
     .post((req, res) => {
-        const passwordHash = crypto.createHash('sha256').update(req.body.password).digest('base64');
         db.findUser(req.body.username)
             .then(user => {
                 if (user) {
-                    if (user.password === passwordHash)
-                        res.render('secrets');
-                    else
-                        res.send('Incorrect password');
+                    bcrypt.compare(req.body.password, user.password)
+                        .then(result => {
+                            if (result)
+                                res.render('secrets');
+                            else
+                                res.send('Incorrect password');
+                        })
                 }
                 else
                     res.send('User not found');
@@ -43,14 +48,15 @@ app.route("/register")
     })
     .post((req, res) => {
         const email = req.body.username;
-        const passwordHash = crypto.createHash('sha256').update(req.body.password).digest('base64');
-        db.addUser(email, passwordHash)
-            .then((result) => {
-                if (result)
-                    res.render('secrets'); //new user created
-                else
-                    res.render('register'); //already registered
-            })
+        bcrypt.hash(req.body.password, saltRounds).then(passwordHash => {
+            db.addUser(email, passwordHash)
+                .then((result) => {
+                    if (result)
+                        res.render('secrets'); //new user created
+                    else
+                        res.render('register'); //already registered
+                })
+        });
     });
 
 
