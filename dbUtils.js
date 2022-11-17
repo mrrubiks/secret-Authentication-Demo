@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+//const encrypt = require('mongoose-encryption');
 
 exports.connect = async (dbName, options) => {
     if (options == null) {
@@ -29,7 +29,7 @@ exports.userSchema = new mongoose.Schema({
     }
 });
 
-exports.userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password'] });
+//exports.userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ['password'] });
 
 exports.User = mongoose.model('User', exports.userSchema);
 

@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const db = require('./dbUtils.js');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -14,16 +15,16 @@ app.route("/")
     .get((req, res) => {
         res.render('home');
     });
-
 app.route("/login")
     .get((req, res) => {
         res.render('login');
     })
     .post((req, res) => {
+        const passwordHash = crypto.createHash('sha256').update(req.body.password).digest('base64');
         db.findUser(req.body.username)
             .then(user => {
                 if (user) {
-                    if (user.password === req.body.password)
+                    if (user.password === passwordHash)
                         res.render('secrets');
                     else
                         res.send('Incorrect password');
@@ -42,8 +43,8 @@ app.route("/register")
     })
     .post((req, res) => {
         const email = req.body.username;
-        const password = req.body.password;
-        db.addUser(email, password)
+        const passwordHash = crypto.createHash('sha256').update(req.body.password).digest('base64');
+        db.addUser(email, passwordHash)
             .then((result) => {
                 if (result)
                     res.render('secrets'); //new user created
