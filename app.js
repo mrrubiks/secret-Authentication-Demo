@@ -1,10 +1,12 @@
 require('dotenv').config();
+const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const ejs = require('ejs');
 const db = require('./dbUtils.js');
-//const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+
+
 const saltRounds = 10;
 
 
@@ -12,7 +14,17 @@ const app = express();
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cookieParser());
 app.use(express.static('public'));
+
+
+app.get("/setcookie", (req, res) => {
+    res.cookie("name", "value");
+    res.cookie("name2", "value2");
+    res.send("Cookie set");
+});
+
 
 app.route("/")
     .get((req, res) => {
@@ -20,7 +32,10 @@ app.route("/")
     });
 app.route("/login")
     .get((req, res) => {
-        res.render('login');
+        if (req.cookies.loggedIn)
+            res.render('secrets');
+        else
+            res.render('login');
     })
     .post((req, res) => {
         db.findUser(req.body.username)
@@ -28,8 +43,10 @@ app.route("/login")
                 if (user) {
                     bcrypt.compare(req.body.password, user.password)
                         .then(result => {
-                            if (result)
+                            if (result) {
+                                res.cookie("loggedIn", true);
                                 res.render('secrets');
+                            }
                             else
                                 res.send('Incorrect password');
                         })
@@ -59,6 +76,11 @@ app.route("/register")
         });
     });
 
+app.route("/logout")
+    .get((req, res) => {
+        res.clearCookie("loggedIn");
+        res.redirect("/");
+    });
 
 
 
