@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-//const encrypt = require('mongoose-encryption');
+const passportLocalMongoose = require('passport-local-mongoose');
 
 exports.connect = async (dbName, options) => {
     if (options == null) {
