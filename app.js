@@ -6,6 +6,8 @@ const ejs = require('ejs');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const passport = require('passport');
+const googleStrategy = require('passport-google-oauth20').Strategy;
+const githubStrategy = require('passport-github2').Strategy;
 
 const db = require('./dbUtils.js');
 const User = require('./user.js').User;
@@ -36,18 +38,120 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+// Set serialize and deserialize user
+// This is used to store the user in the session
+passport.serializeUser(function (user, cb) {
+    process.nextTick(function () {
+        return cb(null, {
+            id: user.id,
+            username: user.username
+        });
+    });
+});
+
+passport.deserializeUser(function (user, cb) {
+    process.nextTick(function () {
+        return cb(null, user);
+    });
+});
+
 // Set up passport-local strategy
 // Use .createStrategy() instead of .authenticate()
 passport.use(User.createStrategy());
 
-// Set serialize and deserialize user
-// This is used to store the user in the session
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+// Set up passport-google-oauth20 strategy
+passport.use(new googleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL
+},
+    function verify(accessToken, refreshToken, profile, cb) {
+        User.findOne({
+            'google.id': profile.id
+        }, function (err, user) {
+            if (err) {
+                return cb(err);
+            }
+            //No user was found... 
+            if (!user) {
+                console.log("No user found, creating new user");
+                user = new User({
+                    username: profile.displayName,
+                    provider: 'google',
+                    email: profile.emails[0].value,
+                    photo: profile.photos[0].value,
+                    //now in the future searching on User.findOne({'google.id': profile.id } will match because of this next line
+                    google: profile
+                });
+                user.save(function (err) {
+                    if (err) console.log(err);
+                    return cb(null, user);
+                });
+            } else {
+                console.log("User found, logging in");
+                //found user. Return
+                return cb(null, user);
+            }
+        });
+    }
+));
+
+// Set up passport-github2 strategy
+passport.use(new githubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: process.env.GITHUB_CALLBACK_URL
+},
+    function verify(accessToken, refreshToken, profile, cb) {
+        User.findOne({
+            'github.id': profile.id
+        }, function (err, user) {
+            if (err) {
+                return cb(err);
+            }
+            if (!user) {
+                console.log("No user found, creating new user");
+                user = new User({
+                    username: profile.displayName,
+                    provider: 'github',
+                    email: profile.emails[0].value,
+                    photo: profile.photos[0].value,
+                    github: profile
+                });
+                user.save(function (err) {
+                    if (err) console.log(err);
+                    return cb(null, user);
+                });
+            } else {
+                console.log("User found, logging in");
+                return cb(null, user);
+            }
+        });
+    }
+));
+
+
+
 
 app.route("/")
     .get((req, res) => {
         res.render('home');
+    });
+
+app.route("/auth/:provider")
+    .get((req, res, next) => {
+        passport.authenticate(req.params.provider, {
+            scope: ['profile', 'email']
+        })(req, res, next);
+    });
+
+app.route("/auth/:provider/callback")
+    .get((req, res, next) => {
+        passport.authenticate(req.params.provider, {
+            successRedirect: '/secrets',
+            failureRedirect: '/login'
+        })(req, res, next);
     });
 
 
