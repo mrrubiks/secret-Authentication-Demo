@@ -273,6 +273,11 @@ app.route("/submit")
 
 
 (async () => {
-    await db.connect('userSecretDB');
+    if (process.env.NODE_ENV !== 'production') {
+        await db.connect('userSecretDB');
+    }
+    else {
+        await db.connect('userSecretDB', { user: process.env.MONGODBATLAS_USR, password: MONGODBATLAS_PSW });
+    }
     app.listen(3000, () => console.log('Server started on port 3000'));
 })().then(() => { console.log('Done'); });
