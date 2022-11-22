@@ -41,18 +41,22 @@ app.use(passport.session());
 
 // Set serialize and deserialize user
 // This is used to store the user in the session
+
+// Serialize user to the session
+// req.session.passport.user = user.id
 passport.serializeUser(function (user, cb) {
     process.nextTick(function () {
-        return cb(null, {
-            id: user.id,
-            username: user.username
-        });
+        return cb(null, user.id);
     });
 });
 
+// Deserialize user from the session
+// req.user = {username: 'xxx', provider: 'xxx', ...}
 passport.deserializeUser(function (user, cb) {
     process.nextTick(function () {
-        return cb(null, user);
+        User.findById(user, function (err, user) {
+            return cb(err, user);
+        });
     });
 });
 
@@ -213,6 +217,8 @@ app.route("/logout")
 
 app.route("/secrets")
     .get((req, res) => {
+        console.log(req.session.passport.user);
+        console.log(req.user);
         if (req.isAuthenticated()) {
             res.render('secrets');
         }
