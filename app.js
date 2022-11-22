@@ -50,6 +50,11 @@ passport.serializeUser(function (user, cb) {
     });
 });
 
+// The User.serializeUser() will serialize the username field to the session
+// It's not ideal to seraialize the username
+// It's better to serialize the id, because the id is unique and indexed
+//passport.serializeUser(User.serializeUser());
+
 // Deserialize user from the session
 // req.user = {username: 'xxx', provider: 'xxx', ...}
 passport.deserializeUser(function (user, cb) {
@@ -59,6 +64,9 @@ passport.deserializeUser(function (user, cb) {
         });
     });
 });
+
+// The User.deserializeUser() will retrieve the whole user object from the database and attach it to the request object as req.user
+//passport.deserializeUser(User.deserializeUser());
 
 // Set up passport-local strategy
 // Use .createStrategy() instead of .authenticate()
@@ -217,15 +225,53 @@ app.route("/logout")
 
 app.route("/secrets")
     .get((req, res) => {
-        console.log(req.session.passport.user);
-        console.log(req.user);
+        // console.log(req.session.passport.user);
+        // console.log(req.user);
         if (req.isAuthenticated()) {
-            res.render('secrets');
+            db.Secret.find()
+                .then(secrets => {
+                    res.render('secrets', { secrets: secrets });
+                })
+                .catch(err => {
+                    console.log(err);
+                });
         }
         else {
             res.redirect('/login');
         }
     });
+
+app.route("/submit")
+    .get((req, res) => {
+        if (req.isAuthenticated()) {
+            res.render('submit');
+        }
+        else {
+            res.redirect('/login');
+        }
+    })
+    .post((req, res) => {
+        if (req.isAuthenticated()) {
+            const submittedSecret = new db.Secret({
+                secret: req.body.secret
+            });
+            submittedSecret.save();
+            req.user.secret.push(submittedSecret._id);
+            req.user.save()
+                .then(() => {
+                    res.redirect('/secrets');
+                })
+                .catch(err => {
+                    console.log(err);
+                    res.redirect('/submit');
+                });
+        }
+        else {
+            res.redirect('/login');
+        }
+    });
+
+
 (async () => {
     await db.connect('userSecretDB');
     app.listen(3000, () => console.log('Server started on port 3000'));

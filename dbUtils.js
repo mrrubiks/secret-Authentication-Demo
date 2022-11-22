@@ -16,3 +16,12 @@ exports.connect = async (dbName, options) => {
     mongoose.connection.on("error", console.error.bind(console, "connection error:"));
     return mongoose.connection;
 }
+
+const secretSchema = new mongoose.Schema({
+    secret: {
+        type: String,
+        required: true
+    }
+});
+
+exports.Secret = mongoose.model('Secret', secretSchema);

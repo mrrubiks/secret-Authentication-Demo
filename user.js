@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
     },
     email: String,
     photo: String,
+    secret: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'Secret'
+    },
     provider: { // google, facebook, local
         type: String,
         default: 'local',
