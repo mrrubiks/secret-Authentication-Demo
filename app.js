@@ -279,5 +279,5 @@ app.route("/submit")
     else {
         await db.connect('userSecretDB', { user: process.env.MONGODBATLAS_USR, password: process.env.MONGODBATLAS_PSW });
     }
-    app.listen(process.env.PORT || 3000, () => console.log(`Server started on port 3000${process.env.PORT || 3000}`));
+    app.listen(process.env.PORT || 3000, () => console.log(`Server started on port ${process.env.PORT || 3000}`));
 })().then(() => { console.log('Done'); });
