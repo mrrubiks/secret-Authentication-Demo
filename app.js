@@ -28,7 +28,8 @@ app.use(session({
         maxAge: 1000 * 60 //1 minute
     },
     store: MongoStore.create({
-        mongoUrl: 'mongodb://127.0.0.1:27017/sessionDB',
+        mongoUrl: process.env.NODE_ENV === 'production' ? process.env.MONGODBATLAS_SESSION_URL
+            : 'mongodb://127.0.0.1:27017/sessionDB',
         autoRemove: 'interval',
         autoRemoveInterval: 10 //10 minute
     })
